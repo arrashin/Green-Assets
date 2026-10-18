@@ -1,0 +1,1695 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CGST Eco Inventory</title>
+<link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/243/243457.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1b2b22;--muted:#5b6a60;--bg:#e9efe9;--panel:#fbfdfb;--line:#d3dcd4;--accent:#1f6b43;
+--good:#2e8b57;--fair:#d9a321;--poor:#c4452f;--new:#3566b8;--replant:#7c3aed;--replace:#d97706}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden}
+body{font:15px/1.45 "Public Sans",system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+.app-layout{display:flex;flex-direction:column;height:100%;width:100%;overflow:hidden}
+
+/* Static Full-Width Header Bar */
+.top-header-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line);z-index:1100;flex:none;height:64px;box-shadow:0 2px 4px rgba(0,0,0,0.03)}
+.top-title-wrapper{display:flex;align-items:center;gap:12px;min-width:0;overflow:hidden}
+.app-icon{width:36px;height:36px;object-fit:contain;line-height:1;display:block;flex:none}
+.app-icon.editable{cursor:pointer;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.15));transition:transform 0.15s ease}
+.app-icon.editable:hover{transform:scale(1.15);opacity:0.85}
+h1{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0;letter-spacing:-.01em;cursor:default;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(19px, 2.95vw, 29.5px);font-weight:700;line-height:1.1}
+h1.editable{cursor:pointer;border-bottom:1px dashed var(--accent)}
+h1.editable:hover{opacity:0.75}
+
+/* Header Right Actions (Language Switcher + Admin Login + Sign Out) */
+.header-right-actions{display:flex;align-items:center;gap:12px;flex:none}
+.lang-switch{display:inline-flex;flex:none;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.lang-switch button{border:0;background:#fff;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted)}
+.lang-switch button[aria-pressed=true]{background:var(--accent);color:#fff}
+
+/* Main Workspace Container (Sidebar + Map) */
+.main-workspace{display:flex;flex:1;position:relative;overflow:hidden}
+
+aside{width:370px;min-width:370px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:1000;position:relative}
+.sidebar-scroll-content{flex:1;overflow-y:auto;padding:16px 18px 24px}
+
+.admin-bar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;background:#fff8e6;border:1px solid #f1deaa;border-radius:6px;padding:8px 10px;margin:0 0 12px;font-size:12px}
+.admin-bar .badge{font-weight:700;color:#8a5a00;margin-right:auto}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 14px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block;background:var(--c);flex:none}
+input,select,textarea,button{font:inherit;color:inherit}
+input[type=search],select,textarea,input[type=file],input[type=text],input[type=number],input[type=date],input[type=password]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:13px}
+textarea{resize:vertical;min-height:56px}
+label{display:block;font-weight:600;font-size:12.5px;margin:10px 0 4px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #8fc7a5;outline-offset:1px}
+ul{list-style:none;margin:10px 0 0;padding:0;max-height:22vh;overflow-y:auto;border-top:1px solid var(--line);margin-bottom:12px}
+li button{width:100%;display:flex;align-items:center;gap:10px;text-align:left;padding:8px 4px;border:0;border-bottom:1px solid var(--line);background:none;cursor:pointer;font-size:13px}
+li button:hover{background:#eef5ef}
+li .cond{margin-left:auto;color:var(--muted);font-size:12px}
+.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+button.primary{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:9px 12px;font-weight:600;cursor:pointer;font-size:13px}
+button.replant-btn{background:var(--replant);color:#fff;border:0;border-radius:6px;padding:9px 12px;font-weight:600;cursor:pointer;font-size:13px}
+button.ghost{background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer;margin-top:6px;font-size:12.5px}
+.opt-group{margin:10px 0 0}
+.opt-title{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
+.opt-row{display:flex;gap:6px;flex-wrap:wrap}
+.opt{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:12px;cursor:pointer;color:var(--muted)}
+.opt .sw{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
+.opt .sw.line{width:14px;height:0;border-radius:0;background:none;border-top:2px dashed var(--c)}
+.opt[aria-pressed=true]{background:#eef5ef;border-color:var(--accent);color:var(--ink);font-weight:600}
+.opt[aria-pressed=false] .sw{opacity:.35}
+.opt:disabled{opacity:.45;cursor:not-allowed}
+details.filters, details.stats-details, details.approval-details{margin:10px 0 0;border:1px solid var(--line);border-radius:8px;background:#fff}
+details.filters>summary, details.stats-details>summary, details.approval-details>summary{list-style:none;cursor:pointer;padding:8px 10px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+details.filters>summary::-webkit-details-marker, details.stats-details>summary::-webkit-details-marker, details.approval-details>summary::-webkit-details-marker{display:none}
+details.filters>summary::after, details.stats-details>summary::after, details.approval-details>summary::after{content:'\25BE';margin-left:auto;color:var(--muted);transition:transform .15s}
+details.filters[open]>summary::after, details.stats-details[open]>summary::after, details.approval-details[open]>summary::after{transform:rotate(180deg)}
+.fbadge{background:var(--accent);color:#fff;border-radius:999px;font-size:11px;padding:1px 7px;font-weight:600}
+.fbody, .stats-body, .approval-body{padding:10px;border-top:1px solid var(--line);font-size:12.5px}
+.stat-summary-box{background:#f0f5f1;border:1px solid #d3dcd4;border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center}
+.stat-row{display:flex;justify-content:between;align-items:center;padding:5px 0;border-bottom:1px dashed var(--line)}
+.stat-row:last-child{border-bottom:0}
+.fgroup{margin-top:10px}
+.fgroup-title{font-size:12px;font-weight:700;margin-bottom:2px}
+.fsub{font-size:11px;color:var(--muted);margin:6px 0 2px}
+.flist{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;max-height:150px;overflow-y:auto}
+.fcheck{display:flex;align-items:center;gap:6px;font-weight:400;font-size:12.5px;margin:0;padding:2px 0;cursor:pointer}
+.fcheck input{width:auto;margin:0}
+.fcheck .n{color:var(--muted);font-size:11px;margin-left:auto}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:4px}
+.seg button{border:0;background:#fff;padding:8px 6px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed=true]{background:var(--replant);color:#fff}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:9999;padding:16px}
+.modal-card{background:#fff;border-radius:10px;max-width:520px;width:100%;padding:20px;border:1px solid var(--line);max-height:90vh;overflow-y:auto}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.modal-header h3{margin:0;font-family:"Bricolage Grotesque",sans-serif;font-size:18px}
+.close-btn{background:none;border:0;font-size:20px;cursor:pointer}
+#map{flex:1;height:100%;min-height:360px}
+#map.picking-mode { cursor: crosshair !important; }
+#map.picking-mode * { cursor: crosshair !important; }
+.leaflet-tooltip.tl{background:none;border:0;box-shadow:none;padding:0;display:none;transition:opacity .5s ease}
+.leaflet-tooltip.tl::before{display:none}
+.lab .leaflet-tooltip.tl{display:block}
+.tid{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:4px;padding:2px 6px;font-weight:600;font-size:11.5px;box-shadow:0 1px 3px rgba(0,0,0,.15);transform-origin:50% 100%;transition:transform .5s ease,opacity .5s ease;pointer-events:auto;cursor:pointer}
+.tl.active{z-index:1000}
+.tl.active .tid{transform:scale(1.5)!important;box-shadow:0 6px 16px rgba(0,0,0,.22);border-color:var(--accent);background:#fff}
+.hovering .leaflet-tooltip.tl:not(.active){opacity:0!important;pointer-events:none}
+path.tree{transition:opacity .5s ease;transform:none!important}
+.hovering path.tree:not(.active){opacity:.5!important}
+path.tree.active{opacity:1!important;transform:none!important}
+.tl.replanted .tid{border-color:#c4b5fd;color:#6d28d9;background:#f5f3ff;border-style:dashed}
+.tl.gone .tid{color:var(--muted);border-style:dashed}
+.popup b{font-family:"Bricolage Grotesque",sans-serif;font-size:15px}
+.popup table{border-collapse:collapse;margin:6px 0;width:100%}
+.popup td{padding:2px 8px 2px 0;font-size:12px;vertical-align:top}
+.popup td:first-child{color:var(--muted);width:95px}
+.popup .act-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+.popup .act-btn{padding:5px 4px;font-size:11px;font-weight:600;border-radius:4px;border:1px solid var(--line);background:#f8faf8;cursor:pointer;text-align:center}
+.popup .act-btn:hover{background:#eef5ef}
+.popup .replant-banner{background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:6px 8px;margin-bottom:6px;font-size:11.5px}
+.popup .replant-banner a{color:#6d28d9;font-weight:700;text-decoration:underline}
+.map-pick-banner{position:absolute;top:16px;left:50%;transform:translateX(-50%);background:#1f6b43;color:#fff;padding:10px 20px;border-radius:999px;font-weight:600;z-index:2000;box-shadow:0 4px 12px rgba(0,0,0,0.2);display:flex;align-items:center;gap:12px;animation:pulse 2s infinite}
+@keyframes pulse{0%{opacity:1}50%{opacity:0.85}100%{opacity:1}}
+@media (max-width:760px){
+ .main-workspace{flex-direction:column}
+ aside{width:100%;min-width:100%;height:50vh}
+ #map{height:50vh}
+}
+@media (prefers-reduced-motion:reduce){.leaflet-tooltip.tl,.tid,path.tree,details.filters>summary::after{transition:none}}
+</style>
+</head>
+<body>
+<div class="app-layout">
+  <!-- Static Full-Width Header Bar -->
+  <header class="top-header-bar">
+    <div class="top-title-wrapper">
+      <img id="appIconDisplay" class="app-icon" src="https://cdn-icons-png.flaticon.com/512/243/243457.png" alt="Tree Logo">
+      <h1 id="appTitleDisplay" title="CGST Eco Inventory">CGST Eco Inventory</h1>
+    </div>
+    <div class="header-right-actions">
+      <div class="lang-switch" role="group" aria-label="Language / Bahasa">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="id" aria-pressed="false">ID</button>
+      </div>
+      <button type="button" class="primary" id="adminLinkBtn" style="background:#8a5a00;padding:6px 12px;font-size:12.5px" data-i18n="adminLink">Admin Login</button>
+      <button type="button" class="ghost" id="logoutBtnTop" data-i18n="logout" hidden style="margin-top:0;padding:6px 12px;font-size:12.5px;background:#fff8e6;border-color:#f1deaa;color:#8a5a00">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- Main Workspace (Sidebar + Map) -->
+  <div class="main-workspace">
+    <aside id="sidebar">
+      <!-- Scrollable Sidebar Content -->
+      <div class="sidebar-scroll-content">
+        <div class="admin-bar" id="adminBar" hidden>
+          <span class="badge" data-i18n="adminMode">Admin Mode Active</span>
+          <button type="button" class="ghost" id="exportBtn" data-i18n="exportCsv">⬇ Export CSV</button>
+        </div>
+
+        <div class="btn-grid" style="margin-top:4px">
+          <button class="primary" type="button" id="openAddBtn" data-i18n="addTree">+ Add Tree</button>
+          <button class="replant-btn" type="button" id="openReplantBtn" data-i18n="replantBtn">🔄 Re-plant</button>
+        </div>
+
+        <details class="approval-details" id="approvalDetails" style="display:none">
+          <summary><span data-i18n="pendingQueue">⏳ Pending Approvals</span> <span class="fbadge" id="approvalBadge" hidden>0</span></summary>
+          <div class="approval-body" id="approvalListContainer"></div>
+        </details>
+
+        <details class="stats-details" id="statsDetails">
+          <summary><span data-i18n="areaStats">📊 Area Statistics &amp; Last Update</span></summary>
+          <div class="stats-body" id="statsBody">
+            <div id="statGlobalSummary" class="stat-summary-box"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+              <div>
+                <label style="font-size:11px;margin-bottom:2px" data-i18n="fArea">Area</label>
+                <select id="statFilterArea" style="font-size:12px;padding:4px 6px">
+                  <option value="ALL">All Areas</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:11px;margin-bottom:2px" data-i18n="fSpecies">Species</label>
+                <select id="statFilterSpecies" style="font-size:12px;padding:4px 6px">
+                  <option value="ALL">All Species</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:11px;margin-bottom:2px" data-i18n="condition">Condition</label>
+                <select id="statFilterCond" style="font-size:12px;padding:4px 6px">
+                  <option value="ALL">All Conditions</option>
+                  <option value="Good">Good</option>
+                  <option value="Fair">Fair</option>
+                  <option value="Poor">Poor</option>
+                </select>
+              </div>
+            </div>
+            <div id="statListContainer"></div>
+          </div>
+        </details>
+
+        <div class="legend" style="margin-top:14px">
+          <span><i class="dot" style="--c:var(--good)"></i><span data-i18n="legGood">Good</span></span>
+          <span><i class="dot" style="--c:var(--fair)"></i><span data-i18n="legFair">Fair</span></span>
+          <span><i class="dot" style="--c:var(--poor)"></i><span data-i18n="legPoor">Poor</span></span>
+          <span><i class="dot" style="--c:var(--replant)"></i><span data-i18n="legReplanted">Re-planted</span></span>
+          <span><i class="dot" style="--c:#c3cbc5"></i><span data-i18n="legReplaced">Replaced</span></span>
+        </div>
+
+        <input type="search" id="q" data-i18n-ph="searchPh" placeholder="Find by ID, species, zone or role" aria-label="Search">
+
+        <details class="filters" id="filters">
+          <summary><span data-i18n="filters">Filters</span><span class="fbadge" id="filterBadge" hidden>0</span></summary>
+          <div class="fbody">
+            <div class="fgroup"><div class="fgroup-title" data-i18n="fArea">Area</div><div id="fArea"></div></div>
+            <div class="fgroup"><div class="fgroup-title" data-i18n="fRole">Tree role</div><div class="flist" id="fRole"></div></div>
+            <div class="fgroup"><div class="fgroup-title" data-i18n="fSpecies">Species</div><div class="flist" id="fSpecies"></div></div>
+            <button type="button" class="ghost" id="clearFilters" data-i18n="clearFilters">Clear filters</button>
+          </div>
+        </details>
+
+        <div class="opt-group" role="group" aria-labelledby="optTitle">
+          <span class="opt-title" id="optTitle" data-i18n="showOnMap">Show on map</span>
+          <div class="opt-row">
+            <button type="button" class="opt" id="optReplaced" aria-pressed="false" data-i18n-title="tipReplaced"><i class="sw" style="--c:#9aa59d"></i><span data-i18n="optReplaced">Replaced</span></button>
+            <button type="button" class="opt" id="optReplanted" aria-pressed="false" data-i18n-title="tipReplanted"><i class="sw" style="--c:var(--replant)"></i><span data-i18n="optReplanted">Re-planted</span></button>
+            <button type="button" class="opt" id="optTraj" aria-pressed="false" data-i18n-title="tipTraj"><i class="sw line" style="--c:var(--replant)"></i><span data-i18n="optTraj">Tracking</span></button>
+          </div>
+        </div>
+
+        <ul id="list"></ul>
+
+        <h2 data-i18n="submitReport" style="margin-top:20px">Submit Report</h2>
+        <form id="reportForm">
+          <label for="repTree" data-i18n="whichTree">Which tree?</label>
+          <select id="repTree"></select>
+          <label for="repCond" data-i18n="condition">Condition</label>
+          <select id="repCond">
+            <option value="Good" data-i18n="cond.Good">Good</option>
+            <option value="Fair" data-i18n="cond.Fair">Fair</option>
+            <option value="Poor" data-i18n="cond.Poor">Poor</option>
+            <option value="Dead" data-i18n="cond.Dead">Dead</option>
+          </select>
+          <label for="repNote" data-i18n="notes">Notes</label>
+          <textarea id="repNote" data-i18n-ph="repNotePh" placeholder="Leaning, dead branches, fungus, stakes..."></textarea>
+          <button class="primary" id="sendReportBtn" type="submit" style="margin-top:10px" data-i18n="sendReport">Send Report</button>
+          <p id="repMsg" style="font-size:12px;margin:6px 0 0;color:var(--accent)"></p>
+        </form>
+      </div>
+    </aside>
+
+    <div id="map"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="adminModal">
+  <div class="modal-card" style="max-width:380px">
+    <div class="modal-header">
+      <h3 data-i18n="adminTitle">Admin Login</h3>
+      <button type="button" class="close-btn" onclick="closeModal('adminModal')" aria-label="Close">&times;</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;padding:8px 0">
+      <button type="button" class="primary" id="googleAuthBtn" style="background:#4285F4;width:100%;padding:12px;font-size:14px" data-i18n="authGoogle">Sign In</button>
+      <div style="text-align:center;font-size:12px;color:var(--muted)">— OR PIN / Passcode from Sheet —</div>
+      <div style="display:flex;gap:6px">
+        <input type="password" id="adminPinInput" placeholder="Enter Sheet Admin PIN" style="flex:1">
+        <button type="button" class="primary" id="pinAuthBtn" style="background:#8a5a00;padding:0 14px">Unlock</button>
+      </div>
+    </div>
+    <p id="adminMsg" style="font-size:12.5px;margin:10px 0 0;color:var(--poor);text-align:center;min-height:1.2em" role="alert"></p>
+    <div style="margin-top:16px;text-align:right">
+      <button type="button" class="ghost" onclick="closeModal('adminModal')" data-i18n="cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI Modal -->
+<div class="modal-overlay" id="aiModal">
+  <div class="modal-card" style="max-width:560px">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <img src="https://cdn-icons-png.flaticon.com/512/71/71403.png" alt="AI Icon" style="width:20px;height:20px;object-fit:contain">
+        <h3 data-i18n="aiModalTitle">Ask AI</h3>
+      </div>
+      <button type="button" class="close-btn" onclick="closeModal('aiModal')" aria-label="Close">&times;</button>
+    </div>
+    <label for="aiPrompt" data-i18n="aiPromptLabel">Ask for tree care advice, species overview, or health diagnosis:</label>
+    <textarea id="aiPrompt" data-i18n-ph="aiPromptPh" placeholder="e.g., How should I care for Alstonia scholaris in poor soil conditions?"></textarea>
+    <p id="aiDisclaimer" style="font-size:11px;color:var(--muted);margin:6px 0 10px;font-style:italic" data-i18n="aiDisclaimerText">*Disclaimer: AI can make mistakes. Please verify important botanical and maintenance decisions with professional arborists.</p>
+    <div style="text-align:right;margin-bottom:12px">
+      <button type="button" class="primary" id="sendAiBtn" data-i18n="aiSend">Get AI Advice</button>
+    </div>
+    <div id="aiResultBox" style="background:#f4f7f4;border:1px solid var(--line);border-radius:6px;padding:12px;font-size:13px;max-height:240px;overflow-y:auto;white-space:pre-wrap" hidden></div>
+    <div style="margin-top:16px;text-align:right">
+      <button type="button" class="ghost" onclick="closeModal('aiModal')" data-i18n="close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Replace Modal -->
+<div class="modal-overlay" id="replaceModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 data-i18n="replaceTitle">🌱 Replace Tree Specimen</h3>
+      <button type="button" class="close-btn" onclick="closeModal('replaceModal')" aria-label="Close">&times;</button>
+    </div>
+    <form id="replaceForm">
+      <label data-i18n="targetTree">Target Tree to Replace</label>
+      <input type="text" id="replaceSourceId" readonly style="background:#f1f4f1">
+
+      <label data-i18n="plantSpecies">Plant Species</label>
+      <select id="replaceSpeciesSelect">
+        <optgroup label="Choose from Database (Auto-fills)" data-i18n-label="dbGroup">
+        </optgroup>
+        <optgroup label="Manual Input" data-i18n-label="manualGroup">
+          <option value="CUSTOM" data-i18n="customSpecies">+ Enter New Plant Species...</option>
+        </optgroup>
+      </select>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+        <div>
+          <label data-i18n="commonName">Common Name</label>
+          <input type="text" id="replaceCommonName" required>
+        </div>
+        <div>
+          <label data-i18n="sciName">Scientific Name</label>
+          <input type="text" id="replaceSciName">
+        </div>
+      </div>
+
+      <label data-i18n="newReplId">New Replacement ID</label>
+      <input type="text" id="replaceNewId" required>
+
+      <label data-i18n="condition">Condition</label>
+      <select id="replaceCondition">
+        <option value="Good" data-i18n="cond.Good">Good</option>
+        <option value="Fair" data-i18n="cond.Fair">Fair</option>
+        <option value="Poor" data-i18n="cond.Poor">Poor</option>
+      </select>
+
+      <label data-i18n="reasonNotes">Reason / Notes</label>
+      <input type="text" id="replaceNotes">
+
+      <div style="margin-top:16px;text-align:right">
+        <button type="button" class="ghost" onclick="closeModal('replaceModal')" data-i18n="cancel">Cancel</button>
+        <button type="submit" class="primary" style="background:#d97706" data-i18n="confirmReplace">Confirm Replacement</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Replant Modal -->
+<div class="modal-overlay" id="replantModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 data-i18n="replantTitle">🔄 Re-plant Tree</h3>
+      <button type="button" class="close-btn" onclick="closeModal('replantModal')" aria-label="Close">&times;</button>
+    </div>
+    <form id="replantForm">
+      <div id="replantModeBox" hidden>
+        <div class="seg" role="group">
+          <button type="button" id="modeReplantBtn" aria-pressed="true" data-i18n="modeReplant">Re-plant to new spot</button>
+          <button type="button" id="modeCorrectBtn" aria-pressed="false" data-i18n="modeCorrect">Correct coordinates</button>
+        </div>
+      </div>
+
+      <label id="replantSourceLabel" for="replantSourceSelect" data-i18n="treeToReplant">Tree to Re-plant</label>
+      <select id="replantSourceSelect"></select>
+
+      <div id="replantIdBox">
+        <label for="replantNewId" data-i18n="newTreeId">New Tree ID</label>
+        <input type="text" id="replantNewId" required>
+      </div>
+
+      <label for="replantCoords" data-i18n="coords">Coordinates (-6.332397, 106.628740)</label>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="replantCoords" placeholder="-6.332397, 106.628740" required style="flex:1">
+        <button type="button" class="ghost" id="pickReplantCoordBtn" style="margin-top:0;white-space:nowrap" data-i18n="pickOnMap">📍 Pick on Map</button>
+      </div>
+
+      <label for="replantNotes" data-i18n="reasonNotes">Reason / Notes</label>
+      <input type="text" id="replantNotes">
+
+      <div style="margin-top:16px;text-align:right">
+        <button type="button" class="ghost" onclick="closeModal('replantModal')" data-i18n="cancel">Cancel</button>
+        <button type="submit" class="replant-btn" id="replantSubmit" data-i18n="confirmReplant">Confirm Re-planting</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 data-i18n="addTitle">+ Add Tree to Inventory</h3>
+      <button type="button" class="close-btn" onclick="closeModal('addModal')" aria-label="Close">&times;</button>
+    </div>
+    <form id="addForm">
+      <label for="addCoords" data-i18n="coords">Coordinates (-6.332397, 106.628740)</label>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="addCoords" value="-6.334790, 106.628293" placeholder="-6.332397, 106.628740" required style="flex:1">
+        <button type="button" class="ghost" id="pickAddCoordBtn" style="margin-top:0;white-space:nowrap" data-i18n="pickOnMap">📍 Pick on Map</button>
+      </div>
+
+      <label data-i18n="plantSpecies">Plant Species</label>
+      <select id="addSpeciesSelect">
+        <optgroup label="Choose from Database (Auto-fills)" data-i18n-label="dbGroup">
+        </optgroup>
+        <optgroup label="Manual Input" data-i18n-label="manualGroup">
+          <option value="CUSTOM" data-i18n="customSpecies">+ Enter New Plant Species...</option>
+        </optgroup>
+      </select>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+        <div>
+          <label data-i18n="commonName">Common Name</label>
+          <input type="text" id="addCommonName" required>
+        </div>
+        <div>
+          <label data-i18n="sciName">Scientific Name</label>
+          <input type="text" id="addSciName">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label data-i18n="treeId">Tree ID</label>
+          <input type="text" id="addTreeId" required>
+        </div>
+        <div>
+          <label data-i18n="zone">Zone</label>
+          <select id="addZone"></select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label data-i18n="role">Role</label>
+          <select id="addRole">
+            <option value="Shading" data-i18n="role.Shading">Shading</option>
+            <option value="Ornamental" data-i18n="role.Ornamental">Ornamental</option>
+            <option value="Special" data-i18n="role.Special">Special</option>
+          </select>
+        </div>
+        <div>
+          <label data-i18n="condition">Condition</label>
+          <select id="addCondition">
+            <option value="Good" data-i18n="cond.Good">Good</option>
+            <option value="Fair" data-i18n="cond.Fair">Fair</option>
+            <option value="Poor" data-i18n="cond.Poor">Poor</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;text-align:right">
+        <button type="button" class="ghost" onclick="closeModal('addModal')" data-i18n="cancel">Cancel</button>
+        <button type="submit" class="primary" data-i18n="addSubmit">Add Tree to Map</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] || c));
+const today = () => new Date().toISOString().slice(0, 10);
+
+const GOOGLE_SHEET_API = 'https://script.google.com/macros/s/AKfycbwApYxK3yslUuhIllVyreQEg4XCSTAcfL5Zlo_N_y1g53ZSkBcfBfY6TEmIIaxns3Kz4Q/exec';
+
+const FALLBACK_CSV = `tree_id,species_common,species_scientific,zone,role,latitude,longitude,condition,condition_date,planting_year,notes,status,status_date,replaces,replanted_to,replanted_from,replant_distance,replant_direction
+pulai01,Pulai,Alstonia scholaris,Cluster A,Shading,-6.334790,106.628293,Good,2026-09-12,2021,"Healthy canopy specimen near entrance.",active,,,,,,
+damar01,Damar,Agathis dammara,Commercial Area,Ornamental,-6.335492,106.628810,Good,2026-10-10,2026,"Newly established sapling replacement.",active,,,,,,
+tabebuia01,Tabebuia (Golden Trumpet),Handroanthus chrysotrichus,Cluster B,Ornamental,-6.335012,106.628750,Fair,2026-09-18,2022,"Flowering season approaching, light pruning needed.",active,,,,,,
+trembesi01,Trembesi (Rain Tree),Samanea saman,Common Green Area,Shading,-6.335260,106.629020,Good,2026-09-15,2020,"Large spreading canopy providing excellent shade.",active,,,,,,
+ketapang01,Ketapang Kencana,Terminalia mantaly,Commercial Area,Architectural / Shading,-6.335350,106.628500,Good,2026-09-22,2023,"Tiered branching habit developing nicely.",active,,,,,,
+mahoni01,Mahoni,Swietenia mahagoni,Cluster A,Shading,-6.334910,106.628400,Poor,2026-10-01,2019,"Showing signs of root constriction; soil aeration scheduled.",active,,,,,,
+kiara01,Kiara Payung,Filicium decipiens,Special Area,Shading,-6.335580,106.628660,Good,2026-09-25,2021,"Dense dark green foliage in excellent condition.",active,,,,,,
+angsana01,Angsana (Sena),Pterocarpus indicus,Common Green Area,Shading,-6.336180,106.629110,Fair,2026-09-28,2020,"Minor branch dieback after heavy storm.",active,,,,,,
+pulai02,Pulai,Alstonia scholaris,Cluster B,Ornamental,-6.335030,106.628810,Good,2026-09-12,2022,"Robust growth along perimeter walkway.",active,,,,,,
+tabebuia02,Tabebuia (Golden Trumpet),Handroanthus chrysotrichus,Special Area,Ornamental,-6.335600,106.628700,Good,2026-09-30,2024,"Planted for centennial commemorative landscaping.",active,,,,,,`;
+
+const SPECIES_DB = [
+  { "id": "pulai", "commonName": "Pulai", "scientificName": "Alstonia scholaris", "defaultRole": "Shading" },
+  { "id": "damar", "commonName": "Damar", "scientificName": "Agathis dammara", "defaultRole": "Ornamental" },
+  { "id": "tabebuia", "commonName": "Tabebuia (Golden Trumpet)", "scientificName": "Handroanthus chrysotrichus", "defaultRole": "Ornamental" },
+  { "id": "trembesi", "commonName": "Trembesi (Rain Tree)", "scientificName": "Samanea saman", "defaultRole": "Shading" },
+  { "id": "ketapang-kencana", "commonName": "Ketapang Kencana", "scientificName": "Terminalia mantaly", "defaultRole": "Architectural / Shading" },
+  { "id": "mahoni", "commonName": "Mahoni", "scientificName": "Swietenia mahagoni", "defaultRole": "Shading" },
+  { "id": "kiara-payung", "commonName": "Kiara Payung", "scientificName": "Filicium decipiens", "defaultRole": "Shading" },
+  { "id": "angsana", "commonName": "Angsana (Sena)", "scientificName": "Pterocarpus indicus", "defaultRole": "Shading" }
+];
+
+function parseCoords(str) {
+  const parts = String(str).split(',').map(s => parseFloat(s.trim()));
+  if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+    return { lat: parts[0], lng: parts[1] };
+  }
+  return null;
+}
+
+function latLngToUtm(lat, lon) {
+  const a = 6378137, f = 1 / 298.257223563, k0 = 0.9996;
+  const zone = Math.floor((lon + 180) / 6) + 1;
+  const lon0 = ((zone - 1) * 6 - 180 + 3) * Math.PI / 180;
+  const latRad = lat * Math.PI / 180, lonRad = lon * Math.PI / 180;
+  const e2 = 2 * f - f * f, eprime2 = e2 / (1 - e2);
+  const N = a / Math.sqrt(1 - e2 * Math.sin(latRad) * Math.sin(latRad));
+  const T = Math.tan(latRad) * Math.tan(latRad), C = eprime2 * Math.cos(latRad) * Math.cos(latRad);
+  const A = Math.cos(latRad) * (lonRad - lon0);
+  const M = a * ((1 - e2 / 4 - 3 * e2 * e2 / 64 - 5 * e2 * e2 * e2 / 256) * latRad
+    - (3 * e2 / 8 + 3 * e2 * e2 / 32 + 45 * e2 * e2 * e2 / 1024) * Math.sin(2 * latRad)
+    + (15 * e2 * e2 / 256 + 45 * e2 * e2 * e2 / 1024) * Math.sin(4 * latRad)
+    - (35 * e2 * e2 * e2 / 3072) * Math.sin(6 * latRad));
+  const easting = k0 * N * (A + (1 - T + C) * A * A * A / 6 + (5 - 18 * T + T * T + 72 * C - 58 * eprime2) * A * A * A * A * A / 120) + 500000;
+  let northing = k0 * (M + N * Math.tan(latRad) * (A * A / 2 + (5 - T + 9 * C + 4 * C * C) * A * A * A * A / 24 + (61 - 58 * T + T * T + 600 * C - 330 * eprime2) * A * A * A * A * A * A / 720));
+  if (lat < 0) northing += 10000000;
+  return { e: easting, n: northing };
+}
+
+function parseCSV(text){
+  const lines = text.trim().split('\n');
+  const head = lines.shift().split(',');
+  return lines.map(line => {
+    const vals=[]; let cur='', inQ=false;
+    for(let c of line){
+      if(c === '"'){ inQ = !inQ; }
+      else if(c === ',' && !inQ){ vals.push(cur); cur = ''; }
+      else cur += c;
+    }
+    vals.push(cur);
+    return Object.fromEntries(head.map((h,i) => [h, (vals[i]||'').trim()]));
+  });
+}
+
+const I18N = {
+  en: {
+    addTree: '+ Add Tree', replantBtn: '🔄 Re-plant', areaStats: '📊 Area Statistics & Last Update',
+    legGood: 'Good', legFair: 'Fair', legPoor: 'Poor', legReplanted: 'Re-planted', legReplaced: 'Replaced',
+    searchPh: 'Find by ID, species, zone or role',
+    showOnMap: 'Show on map', optReplaced: 'Replaced', optReplanted: 'Re-planted', optTraj: 'Tracking',
+    tipReplaced: 'Replaced and removed trees', tipReplanted: 'Original spots of re-planted trees', tipTraj: 'Re-Plant Position Tracking', tipTrajOff: 'Turn on Re-planted to draw tracking',
+    submitReport: 'Submit Report', whichTree: 'Which tree?', condition: 'Condition', notes: 'Notes',
+    repNotePh: 'Leaning, dead branches, fungus, stakes...', sendReport: 'Send Report',
+    repSaved: 'Condition report submitted and sent to pending approvals queue.',
+    adminMode: 'Admin Mode Active', exportCsv: '⬇ Export CSV', logout: 'Sign Out',
+    adminLink: 'Admin Login', adminTitle: 'Admin Login',
+    authGoogle: 'Sign In', wrongAdmin: 'Access Denied: The signed-in Google account ({email}) is not an authorized administrator.',
+    renamePrompt: 'Enter new inventory title:',
+    iconPrompt: 'Enter new tree icon image URL:',
+    cancel: 'Cancel', close: 'Close',
+    aiModalTitle: 'Ask AI',
+    aiPromptLabel: 'Ask for tree care advice, species overview, or health diagnosis:',
+    aiPromptPh: 'e.g., How should I care for Alstonia scholaris in poor soil conditions?',
+    aiDisclaimerText: '*Disclaimer: AI can make mistakes. Please verify important botanical and maintenance decisions with professional arborists.',
+    aiSend: 'Get AI Advice',
+    aiLoading: 'Consulting Gemini AI botanical database...',
+    replaceTitle: '🌱 Replace Tree Specimen', targetTree: 'Target Tree to Replace', plantSpecies: 'Plant Species',
+    dbGroup: 'Choose from Database (Auto-fills)', manualGroup: 'Manual Input', customSpecies: '+ Enter New Plant Species...',
+    commonName: 'Common Name', sciName: 'Scientific Name', newReplId: 'New Replacement ID', reasonNotes: 'Reason / Notes',
+    confirmReplace: 'Confirm Replacement', defReplaceNote: 'Replaced declining specimen with healthy sapling.',
+    replantTitle: '🔄 Re-plant Tree', modeReplant: 'Re-plant to new spot', modeCorrect: 'Correct coordinates',
+    treeToReplant: 'Tree to Re-plant', treeToCorrect: 'Tree to Correct', newTreeId: 'New Tree ID',
+    coords: 'Coordinates (-6.332397, 106.628740)', coordCorrect: 'Corrected Coordinates',
+    confirmReplant: 'Confirm Re-planting', saveCorrection: 'Save Correction',
+    defReplantNote: 'Re-planted from {id}.', defCorrectNote: 'Coordinates corrected.',
+    addTitle: '+ Add Tree to Inventory',
+    treeId: 'ID', zone: 'Zone', role: 'Role', addSubmit: 'Add Tree to Map',
+    dupId: 'The ID "{id}" already exists. Each tree needs a unique ID.',
+    samePos: 'The new coordinates are the same as the current position.',
+    filters: 'Filters', fArea: 'Area', fRole: 'Tree role', fSpecies: 'Species',
+    fPublic: 'Public area', fCluster: 'Cluster area', clearFilters: 'Clear filters',
+    noMatch: 'No trees match the current filters.',
+    pZone: 'Zone:', pCond: 'Condition:', pPlanted: 'Planted:', pNotes: 'Notes:', pLoc: 'Location:', pCorrected: 'Position corrected:',
+    unknown: 'Unknown', distDir: '{d} m {dir}',
+    bReplantedTo: 'Re-planted to new location', bViewNew: 'View New Position: {id}',
+    bFrom: 'Re-planted Specimen', bViewOrig: 'View Original Spot: {id}',
+    aReplace: '🌱 Replace', aReplant: '🔄 Re-plant', aReport: '📝 Report', aReplantTip: 'Re-plant or correct coordinates',
+    cluster: 'Cluster', zCommon: 'Common Green Area', zCommercial: 'Commercial Area', zSpecial: 'Special Area',
+    totalTrees: 'Total Trees', lastUpdate: 'Last Updated',
+    pickOnMap: '📍 Pick on Map', pickMapBanner: 'Click anywhere on the map to set coordinates...',
+    pendingQueue: '⏳ Pending Approvals', approve: 'Approve', reject: 'Reject',
+    subAdded: 'Submitted Add Tree: {id}', subReplaced: 'Submitted Replace: {id}', subReplanted: 'Submitted Re-plant: {id}', subReport: 'Submitted Report for {id}',
+    'status.active': 'active', 'status.replanted': 're-planted', 'status.replaced': 'replaced', 'status.removed': 'removed',
+    'cond.Good': 'Good', 'cond.Fair': 'Fair', 'cond.Poor': 'Poor', 'cond.Dead': 'Dead',
+    'role.Shading': 'Shading', 'role.Ornamental': 'Ornamental', 'role.Special': 'Special',
+    'dir.north': 'North', 'dir.north-east': 'North-East', 'dir.east': 'East', 'dir.south-east': 'South-East',
+    'dir.south': 'South', 'dir.south-west': 'South-West', 'dir.west': 'West', 'dir.north-west': 'North-West'
+  },
+  id: {
+    addTree: '+ Tambah Pohon', replantBtn: '🔄 Pindah-tanam', areaStats: '📊 Statistik Area & Pembaruan Terakhir',
+    legGood: 'Baik', legFair: 'Cukup', legPoor: 'Buruk', legReplanted: 'Pindah-tanam', legReplaced: 'Diganti',
+    searchPh: 'Cari berdasarkan ID, spesies, zona atau peran',
+    showOnMap: 'Tampilkan di peta', optReplaced: 'Diganti', optReplanted: 'Pindah-tanam', optTraj: 'Telusur',
+    tipReplaced: 'Pohon yang diganti dan dihapus', tipReplanted: 'Lokasi asal pohon yang Pindah-tanam', tipTraj: 'Re-Plant Position Tracking', tipTrajOff: 'Aktifkan Pindah-tanam untuk menampilkan Telusur',
+    submitReport: 'Kirim Laporan', whichTree: 'Pohon yang mana?', condition: 'Kondisi', notes: 'Catatan',
+    repNotePh: 'Miring, ranting mati, jamur, ajir...', sendReport: 'Kirim Laporan',
+    repSaved: 'Laporan kondisi dikirim ke antrean persetujuan.',
+    adminMode: 'Mode Admin Aktif', exportCsv: '⬇ Ekspor CSV', logout: 'Keluar',
+    adminLink: 'Admin Login', adminTitle: 'Masuk Admin',
+    authGoogle: 'Sign In', wrongAdmin: 'Akses Ditolak: Akun Google yang masuk ({email}) bukan administrator yang sah.',
+    renamePrompt: 'Masukkan judul inventaris baru:',
+    iconPrompt: 'Masukkan URL gambar ikon pohon baru:',
+    cancel: 'Batal', close: 'Tutup',
+    aiModalTitle: 'Ask AI',
+    aiPromptLabel: 'Minta saran perawatan pohon, ringkasan spesies, atau diagnosis kesehatan:',
+    aiPromptPh: 'mis., Bagaimana cara merawat Alstonia scholaris pada kondisi tanah yang kurang subur?',
+    aiDisclaimerText: '*Disclaimer: AI dapat membuat kesalahan. Harap verifikasi keputusan botani dan pemeliharaan penting dengan arborist profesional.',
+    aiSend: 'Dapatkan Saran AI',
+    aiLoading: 'Menghonsultasikan basis data botani Gemini AI...',
+    replaceTitle: '🌱 Ganti Pohon', targetTree: 'Pohon yang Diganti', plantSpecies: 'Spesies Tanaman',
+    dbGroup: 'Pilih dari Basis Data (Isi otomatis)', manualGroup: 'Input Manual', customSpecies: '+ Masukkan Spesies Baru...',
+    commonName: 'Nama Umum', sciName: 'Nama Ilmiah', newReplId: 'ID Pohon Pengganti', reasonNotes: 'Alasan / Catatan',
+    confirmReplace: 'Konfirmasi Penggantian', defReplaceNote: 'Mengganti pohon yang kondisinya menurun dengan bibit sehat.',
+    replantTitle: '🔄 Pindah-tanam', modeReplant: 'Pindah-tanam ke lokasi baru', modeCorrect: 'Koreksi koordinat',
+    treeToReplant: 'Pohon yang Pindah-tanam', treeToCorrect: 'Pohon yang Dikoreksi', newTreeId: 'ID Pohon Baru',
+    coords: 'Koordinat (-6.332397, 106.628740)', coordCorrect: 'Koordinat Hasil Koreksi',
+    confirmReplant: 'Konfirmasi Pemindahan', saveCorrection: 'Simpan Koreksi',
+    defReplantNote: 'Pindah-tanam dari {id}.', defCorrectNote: 'Koordinat dikoreksi.',
+    addTitle: '+ Tambah Pohon ke Inventaris',
+    treeId: 'ID', zone: 'Zona', role: 'Peran', addSubmit: 'Tambah Pohon ke Peta',
+    dupId: 'ID "{id}" sudah ada. Setiap pohon harus memiliki ID unik.',
+    samePos: 'Koordinat baru sama dengan posisi saat ini.',
+    filters: 'Filter', fArea: 'Area', fRole: 'Peran pohon', fSpecies: 'Spesies',
+    fPublic: 'Area publik', fCluster: 'Area klaster', clearFilters: 'Hapus filter',
+    noMatch: 'Tidak ada pohon yang cocok dengan filter.',
+    pZone: 'Zona:', pCond: 'Kondisi:', pPlanted: 'Ditanam:', pNotes: 'Catatan:', pLoc: 'Lokasi:', pCorrected: 'Posisi dikoreksi:',
+    unknown: 'Tidak diketahui', distDir: '{d} m ke {dir}',
+    bReplantedTo: 'Pindah-tanam ke lokasi baru', bViewNew: 'Lihat Posisi Baru: {id}',
+    bFrom: 'Pohon Hasil Pindah-tanam', bViewOrig: 'Lihat Lokasi Asal: {id}',
+    aReplace: '🌱 Ganti', aReplant: '🔄 Pindah-tanam', aReport: '📝 Lapor', aReplantTip: 'Pindah-tanam atau koreksi koordinat',
+    cluster: 'Klaster', zCommon: 'Area Hijau Bersama', zCommercial: 'Area Komersial', zSpecial: 'Area Khusus',
+    totalTrees: 'Total Pohon', lastUpdate: 'Pembaruan Terakhir',
+    pickOnMap: '📍 Pilih di Peta', pickMapBanner: 'Klik di mana saja pada peta untuk mengatur koordinat...',
+    pendingQueue: '⏳ Antrean Persetujuan', approve: 'Setujui', reject: 'Tolak',
+    subAdded: 'Mengajukan Tambah Pohon: {id}', subReplaced: 'Mengajukan Penggantian: {id}', subReplanted: 'Mengajukan Pindah-tanam: {id}', subReport: 'Mengajukan Laporan untuk {id}',
+    'status.active': 'aktif', 'status.replanted': 'pindah-tanam', 'status.replaced': 'diganti', 'status.removed': 'dihapus',
+    'cond.Good': 'Baik', 'cond.Fair': 'Cukup', 'cond.Poor': 'Buruk', 'cond.Dead': 'Mati',
+    'role.Shading': 'Peneduh', 'role.Ornamental': 'Hias', 'role.Special': 'Khusus',
+    'dir.north': 'Utara', 'dir.north-east': 'Timur Laut', 'dir.east': 'Timur', 'dir.south-east': 'Tenggara',
+    'dir.south': 'Selatan', 'dir.south-west': 'Barat Daya', 'dir.west': 'Barat', 'dir.north-west': 'Barat Laut'
+  }
+};
+let lang = 'en';
+try { const s = localStorage.getItem('cgst-lang'); if (s === 'en' || s === 'id') lang = s; } catch (e) {}
+
+function tr(k, v) {
+  let s = (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k;
+  if (v) for (const x in v) s = s.split('{' + x + '}').join(v[x]);
+  return s;
+}
+const dirLabel = k => tr('dir.' + k);
+const condLabel = c => tr('cond.' + c);
+const fmtDate = s => { const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); };
+
+const ZONE_OPTS = ['Cluster A', 'Cluster B', 'Common Green Area', 'Commercial Area', 'Special Area'];
+const PUBLIC_AREAS = ['Common Green Area', 'Commercial Area', 'Special Area'];
+const PUBLIC_ZONES = { 'common green area': 'zCommon', 'commercial area': 'zCommercial', 'special area': 'zSpecial' };
+function zoneLabel(z) {
+  if (!z) return '-';
+  const m = /^(?:cluster\s+)?([A-Za-z])$/i.exec(String(z).trim());
+  if (m) return tr('cluster') + ' ' + m[1].toUpperCase();
+  const k = PUBLIC_ZONES[String(z).trim().toLowerCase()];
+  return k ? tr(k) : z;
+}
+const roleLabel = r => (I18N.en['role.' + r] ? tr('role.' + r) : (r || ''));
+
+function fillZones() {
+  const s = $('addZone'), cur = s.value;
+  s.innerHTML = ZONE_OPTS.map(z => `<option value="${esc(z)}">${esc(zoneLabel(z))}</option>`).join('');
+  if (cur) s.value = cur;
+}
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = tr(el.dataset.i18nPh); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = tr(el.dataset.i18nTitle); });
+  document.querySelectorAll('[data-i18n-label]').forEach(el => { el.label = tr(el.dataset.i18nLabel); });
+  document.querySelectorAll('.lang-switch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+  fillZones();
+  syncOptButtons();
+  renderFilters(true);
+  populateStatDropdowns();
+  renderAreaStats();
+  renderPendingQueue();
+}
+function setLang(l) {
+  lang = l;
+  try { localStorage.setItem('cgst-lang', l); } catch (e) {}
+  applyLang();
+  refreshMarkers();
+}
+document.querySelectorAll('.lang-switch button').forEach(b => { b.onclick = () => setLang(b.dataset.lang); });
+
+const COLORS = { Good: "#2e8b57", Fair: "#d9a321", Poor: "#c4452f", Dead: "#6b6b6b" };
+let trees = [];
+let pendingSubmissions = [];
+const aiFeatureEnabled = true;
+let adminMode = false;
+
+async function loadTreeData() {
+  try {
+    const res = await fetch(GOOGLE_SHEET_API);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      trees = data.map(r => {
+        const lat = +r.latitude, lng = +r.longitude;
+        const utm = latLngToUtm(lat, lng);
+        return {
+          id: String(r.tree_id || '').trim(), species: r.species_common, sci: r.species_scientific, zone: r.zone, role: r.role,
+          lat, lng, e: utm.e, n: utm.n, cond: COLORS[r.condition] ? r.condition : "Good", condDate: r.condition_date || '2026-09-12',
+          year: parseInt(r.planting_year, 10) || null, notes: r.notes,
+          status: (r.status || "active").toLowerCase(), statusDate: r.status_date || r.condition_date || '2026-09-12',
+          replaces: r.replaces, replantedTo: r.replanted_to, replantedFrom: r.replanted_from
+        };
+      });
+    } else {
+      throw new Error("Empty data");
+    }
+  } catch (err) {
+    console.warn("Failed to load live Google Sheet, falling back to built-in dataset.", err);
+    trees = parseCSV(FALLBACK_CSV).map(r => {
+      const lat = +r.latitude, lng = +r.longitude;
+      const utm = latLngToUtm(lat, lng);
+      return {
+        id: String(r.tree_id || '').trim(), species: r.species_common, sci: r.species_scientific, zone: r.zone, role: r.role,
+        lat, lng, e: utm.e, n: utm.n, cond: COLORS[r.condition] ? r.condition : "Good", condDate: r.condition_date || '2026-09-12',
+        year: parseInt(r.planting_year, 10) || null, notes: r.notes,
+        status: (r.status || "active").toLowerCase(), statusDate: r.status_date || r.condition_date || '2026-09-12',
+        replaces: r.replaces, replantedTo: r.replanted_to, replantedFrom: r.replanted_from
+      };
+    });
+  }
+  populateStatDropdowns();
+  refreshMarkers();
+}
+
+async function saveTreeDataToSheet(treeObj) {
+  try {
+    const payload = {
+      tree_id: String(treeObj.id || '').trim(),
+      species_common: String(treeObj.species || '').trim(),
+      species_scientific: String(treeObj.sci || '').trim(),
+      zone: String(treeObj.zone || '').trim(),
+      role: String(treeObj.role || '').trim(),
+      latitude: Number(treeObj.lat).toFixed(6),
+      longitude: Number(treeObj.lng).toFixed(6),
+      condition: String(treeObj.cond || 'Good').trim(),
+      condition_date: String(treeObj.condDate || today()).trim(),
+      planting_year: String(treeObj.year || '').trim(),
+      notes: String(treeObj.notes || '').trim(),
+      status: String(treeObj.status || 'active').trim(),
+      status_date: String(treeObj.statusDate || today()).trim(),
+      replaces: String(treeObj.replaces || '').trim(),
+      replanted_to: String(treeObj.replantedTo || '').trim(),
+      replanted_from: String(treeObj.replantedFrom || '').trim(),
+      coord_corrected_date: String(treeObj.coordCorrected || '').trim(),
+      coord_correction_note: String(treeObj.coordNote || '').trim()
+    };
+    
+    await fetch(GOOGLE_SHEET_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+  } catch (err) {
+    console.error("Failed to sync record to Google Sheet:", err);
+  }
+}
+
+function renderPendingQueue() {
+  const container = $('approvalListContainer');
+  const detailsEl = $('approvalDetails');
+  const badgeEl = $('approvalBadge');
+
+  if (!adminMode) {
+    detailsEl.style.display = 'none';
+    return;
+  }
+
+  detailsEl.style.display = 'block';
+  badgeEl.textContent = pendingSubmissions.length;
+  badgeEl.hidden = pendingSubmissions.length === 0;
+
+  if (pendingSubmissions.length === 0) {
+    container.innerHTML = `<div style="padding:6px 0;color:var(--muted);text-align:center;font-size:12px">${lang === 'id' ? 'Tidak ada antrean persetujuan.' : 'No pending submissions.'}</div>`;
+    return;
+  }
+
+  let html = '';
+  pendingSubmissions.forEach((sub, idx) => {
+    html += `<div style="background:#fcfdfc;border:1px solid var(--line);border-radius:6px;padding:8px;margin-bottom:6px">
+      <div style="font-weight:700;font-size:12px;margin-bottom:2px">${esc(sub.title)}</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px">${esc(sub.details)}</div>
+      <div style="display:flex;gap:6px">
+        <button type="button" class="primary" style="padding:4px 8px;font-size:11px" onclick="window.approveSub(${idx})">${tr('approve')}</button>
+        <button type="button" class="ghost" style="padding:4px 8px;font-size:11px;margin-top:0;color:var(--poor);border-color:var(--poor)" onclick="window.rejectSub(${idx})">${tr('reject')}</button>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+window.approveSub = async function(idx) {
+  const sub = pendingSubmissions[idx];
+  if (!sub) return;
+  pendingSubmissions.splice(idx, 1);
+  
+  if (sub.type === 'add') {
+    trees.push(sub.tree);
+    await saveTreeDataToSheet(sub.tree);
+    refreshMarkers();
+    goTo(sub.tree.id);
+  } else if (sub.type === 'replace') {
+    const old = trees.find(t => t.id === sub.srcId);
+    if (old) {
+      old.status = "replaced";
+      old.statusDate = today();
+      await saveTreeDataToSheet(old);
+    }
+    trees.push(sub.newTree);
+    await saveTreeDataToSheet(sub.newTree);
+    refreshMarkers();
+    goTo(sub.newTree.id);
+  } else if (sub.type === 'replant') {
+    const old = trees.find(t => t.id === sub.srcId);
+    if (old) {
+      old.status = "replanted";
+      old.statusDate = today();
+      old.replantedTo = sub.newTree.id;
+      await saveTreeDataToSheet(old);
+    }
+    trees.push(sub.newTree);
+    await saveTreeDataToSheet(sub.newTree);
+    refreshMarkers();
+    goTo(sub.newTree.id);
+  } else if (sub.type === 'report') {
+    const t = trees.find(x => x.id === sub.treeId);
+    if (t) {
+      t.cond = sub.cond;
+      t.condDate = today();
+      if (sub.notes) t.notes = sub.notes;
+      await saveTreeDataToSheet(t);
+      refreshMarkers();
+    }
+  }
+  renderPendingQueue();
+};
+
+window.rejectSub = function(idx) {
+  pendingSubmissions.splice(idx, 1);
+  renderPendingQueue();
+};
+
+function populateStatDropdowns() {
+  const areaSel = $('statFilterArea');
+  const speciesSel = $('statFilterSpecies');
+  
+  const curArea = areaSel.value;
+  const curSpecies = speciesSel.value;
+
+  const areas = new Set();
+  const species = new Set();
+
+  ZONE_OPTS.concat(PUBLIC_AREAS).forEach(z => areas.add(zoneKey(z)));
+  trees.forEach(t => {
+    if (t.zone) areas.add(zoneKey(t.zone));
+    if (t.species) species.add(t.species);
+  });
+
+  areaSel.innerHTML = `<option value="ALL">${lang === 'id' ? 'Semua Area' : 'All Areas'}</option>` + 
+    [...areas].sort().map(a => `<option value="${esc(a)}">${esc(zoneLabel(a))}</option>`).join('');
+  if (curArea) areaSel.value = curArea;
+
+  speciesSel.innerHTML = `<option value="ALL">${lang === 'id' ? 'Semua Spesies' : 'All Species'}</option>` + 
+    [...species].sort().map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  if (curSpecies) speciesSel.value = curSpecies;
+}
+
+$('statFilterArea').addEventListener('change', renderAreaStats);
+$('statFilterSpecies').addEventListener('change', renderAreaStats);
+$('statFilterCond').addEventListener('change', renderAreaStats);
+
+function renderAreaStats() {
+  const container = $('statListContainer');
+  const globalSummaryBox = $('statGlobalSummary');
+  const fArea = $('statFilterArea').value;
+  const fSpecies = $('statFilterSpecies').value;
+  const fCond = $('statFilterCond').value;
+
+  let totalQty = trees.length;
+  let filteredQty = 0;
+  let latestGlobalDate = '2020-01-01';
+
+  trees.forEach(t => {
+    const tDate = t.statusDate || t.condDate || '2020-01-01';
+    if (tDate > latestGlobalDate) latestGlobalDate = tDate;
+
+    let match = true;
+    if (fArea !== 'ALL' && zoneKey(t.zone) !== fArea) match = false;
+    if (fSpecies !== 'ALL' && t.species !== fSpecies) match = false;
+    if (fCond !== 'ALL' && t.cond !== fCond) match = false;
+    if (match) filteredQty++;
+  });
+
+  globalSummaryBox.innerHTML = `<span><strong>${tr('totalTrees')}:</strong> ${filteredQty} / ${totalQty}</span><span style="color:var(--muted)">${tr('lastUpdate')}: ${esc(fmtDate(latestGlobalDate))}</span>`;
+
+  const statsMap = new Map();
+  ZONE_OPTS.concat(PUBLIC_AREAS).forEach(z => {
+    statsMap.set(zoneKey(z), { filteredCount: 0, totalCount: 0, latestDate: '2020-01-01' });
+  });
+
+  trees.forEach(t => {
+    const k = zoneKey(t.zone);
+    if (!statsMap.has(k)) {
+      statsMap.set(k, { filteredCount: 0, totalCount: 0, latestDate: '2020-01-01' });
+    }
+    const stat = statsMap.get(k);
+    stat.totalCount++;
+
+    let match = true;
+    if (fArea !== 'ALL' && k !== fArea) match = false;
+    if (fSpecies !== 'ALL' && t.species !== fSpecies) match = false;
+    if (fCond !== 'ALL' && t.cond !== fCond) match = false;
+
+    if (match) {
+      stat.filteredCount++;
+      const tDate = t.statusDate || t.condDate || '2020-01-01';
+      if (tDate > stat.latestDate) stat.latestDate = tDate;
+    }
+  });
+
+  let html = '';
+  let hasData = false;
+  statsMap.forEach((val, k) => {
+    if (val.totalCount > 0 || fArea === 'ALL') {
+      hasData = true;
+      html += `<div class="stat-row" style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--line)">
+        <span><strong>${esc(zoneLabel(k))}</strong>: ${val.filteredCount} / ${val.totalCount} ${tr('totalTrees').toLowerCase()}</span>
+        <span style="color:var(--muted);font-size:11.5px">${tr('lastUpdate')}: ${esc(fmtDate(val.latestDate))}</span>
+      </div>`;
+    }
+  });
+  if (!hasData) {
+    html = `<div style="padding:6px 0;color:var(--muted);text-align:center;font-size:12px">${lang === 'id' ? 'Tidak ada data yang cocok dengan filter.' : 'No matching stats for current filters.'}</div>`;
+  }
+  container.innerHTML = html;
+}
+
+const DIRS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
+function bearing(a, b) {
+  const dE = b.e - a.e, dN = b.n - a.n;
+  const deg = (Math.atan2(dE, dN) * 180 / Math.PI + 360) % 360;
+  return { m: Math.hypot(dE, dN), dir: DIRS[Math.round(deg / 45) % 8] };
+}
+const fmtDist = m => m >= 10 ? String(Math.round(m)) : m.toFixed(1);
+const dirCsv = k => k.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join('-');
+const distDir = b => tr('distDir', { d: fmtDist(b.m), dir: dirLabel(b.dir) });
+
+const idTaken = id => trees.some(t => t.id.toLowerCase() === String(id).trim().toLowerCase());
+const slug = s => (String(s || 'tree').toLowerCase().split(/[\s(]/)[0].replace(/[^a-z0-9-]/g, '') || 'tree');
+function uniqueId(prefix) { let n = 1, id; do { id = prefix + String(n++).padStart(2, '0'); } while (idTaken(id)); return id; }
+
+function curvePath(a, b) {
+  const dE = b.e - a.e, dN = b.n - a.n, d = Math.hypot(dE, dN);
+  if (d < 0.01) return [[a.lat, a.lng], [b.lat, b.lng]];
+  const h = (d / 2) * Math.tan(20 * Math.PI / 180);
+  const cE = (a.e + b.e) / 2 - dN / d * h, cN = (a.n + b.n) / 2 + dE / d * h;
+  const pts = [];
+  for (let i = 0; i <= 32; i++) {
+    const s = i / 32;
+    const lat = a.lat + (b.lat - a.lat) * s;
+    const lng = a.lng + (b.lng - a.lng) * s;
+    pts.push([lat, lng]);
+  }
+  return pts;
+}
+
+const filters = { area: new Set(), role: new Set(), species: new Set() };
+function zoneKey(z) {
+  const s = String(z == null ? '' : z).trim();
+  const m = /^(?:cluster\s+)?([A-Za-z])$/i.exec(s);
+  if (m) return 'Cluster ' + m[1].toUpperCase();
+  return PUBLIC_AREAS.find(p => p.toLowerCase() === s.toLowerCase()) || s;
+}
+const filtersActive = () => filters.area.size + filters.role.size + filters.species.size;
+function passFilter(t) {
+  return (!filters.area.size || filters.area.has(zoneKey(t.zone)))
+      && (!filters.role.size || filters.role.has(t.role))
+      && (!filters.species.size || filters.species.has(t.species));
+}
+function clearFilters() { filters.area.clear(); filters.role.clear(); filters.species.clear(); }
+
+let filterSig = '';
+function renderFilters(force) {
+  const n = filtersActive();
+  $('filterBadge').textContent = n; $('filterBadge').hidden = !n;
+
+  const count = fn => { const m = new Map(); trees.forEach(t => { const k = fn(t); if (k) m.set(k, (m.get(k) || 0) + 1); }); return m; };
+  const areas = count(t => zoneKey(t.zone)), roles = count(t => t.role), spp = count(t => t.species);
+  ZONE_OPTS.concat(PUBLIC_AREAS).forEach(z => { const k = zoneKey(z); if (!areas.has(k)) areas.set(k, 0); });
+
+  const sig = lang + JSON.stringify([...areas]) + JSON.stringify([...roles]) + JSON.stringify([...spp]);
+  if (!force && sig === filterSig) return;
+  filterSig = sig;
+
+  const box = (g, key, label, c) => `<label class="fcheck"><input type="checkbox" data-g="${g}" value="${esc(key)}"${filters[g].has(key) ? ' checked' : ''}><span>${esc(label)}</span><span class="n">${c}</span></label>`;
+  const keys = [...areas.keys()];
+  const pub = keys.filter(k => !/^Cluster /.test(k)).sort((a, b) => (PUBLIC_AREAS.indexOf(a) + 1 || 99) - (PUBLIC_AREAS.indexOf(b) + 1 || 99) || a.localeCompare(b));
+  const clu = keys.filter(k => /^Cluster /.test(k)).sort();
+  $('fArea').innerHTML =
+    `<div class="fsub">${esc(tr('fPublic'))}</div><div class="flist">${pub.map(k => box('area', k, zoneLabel(k), areas.get(k))).join('')}</div>` +
+    (clu.length ? `<div class="fsub">${esc(tr('fCluster'))}</div><div class="flist">${clu.map(k => box('area', k, zoneLabel(k), areas.get(k))).join('')}</div>` : '');
+  $('fRole').innerHTML = [...roles.keys()]
+    .sort((a, b) => (['Shading', 'Ornamental', 'Special'].indexOf(a) + 1 || 99) - (['Shading', 'Ornamental', 'Special'].indexOf(b) + 1 || 99) || a.localeCompare(b))
+    .map(k => box('role', k, roleLabel(k), roles.get(k))).join('');
+  $('fSpecies').innerHTML = [...spp.keys()].sort((a, b) => a.localeCompare(b)).map(k => box('species', k, k, spp.get(k))).join('');
+}
+$('filters').addEventListener('change', e => {
+  const c = e.target;
+  if (!c.dataset || !c.dataset.g) return;
+  if (c.checked) filters[c.dataset.g].add(c.value); else filters[c.dataset.g].delete(c.value);
+  refreshMarkers();
+});
+$('clearFilters').onclick = () => { clearFilters(); renderFilters(true); refreshMarkers(); };
+
+const map = L.map("map").setView([-6.3348, 106.6283], 19);
+
+const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 20, maxNativeZoom: 18, attribution: 'Imagery &copy; Esri'
+});
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+  maxZoom: 20, maxNativeZoom: 19, attribution: '&copy; OpenStreetMap contributors, HOT'
+});
+
+sat.addTo(map);
+L.control.layers({ "🛰️ Satellite": sat, "🌍 OpenStreetMap": osm }, null, { position: 'topright' }).addTo(map);
+setTimeout(() => { map.invalidateSize(); }, 250);
+
+const labelToggle = () => map.getContainer().classList.toggle('lab', map.getZoom() >= 19);
+map.on('zoomend', labelToggle); labelToggle();
+
+const opts = { replaced: false, replanted: false, traj: false };
+const trajOn = () => opts.replanted && opts.traj;
+function syncOptButtons() {
+  $('optReplaced').setAttribute('aria-pressed', String(opts.replaced));
+  $('optReplanted').setAttribute('aria-pressed', String(opts.replanted));
+  $('optTraj').setAttribute('aria-pressed', String(trajOn()));
+  $('optTraj').disabled = !opts.replanted;
+  $('optTraj').title = tr(opts.replanted ? 'tipTraj' : 'tipTrajOff');
+}
+$('optReplaced').onclick = () => { opts.replaced = !opts.replaced; syncOptButtons(); refreshMarkers(); };
+$('optReplanted').onclick = () => { opts.replanted = !opts.replanted; syncOptButtons(); refreshMarkers(); };
+$('optTraj').onclick = () => { opts.traj = !opts.traj; syncOptButtons(); refreshMarkers(); };
+
+let markers = new Map();
+let trajectories = [];
+let openId = null;
+
+let activePickModalId = null;
+let mapPickBannerEl = null;
+
+function startMapPick(modalId) {
+  activePickModalId = modalId;
+  closeModal(modalId);
+  
+  map.getContainer().classList.add('picking-mode');
+
+  if (!mapPickBannerEl) {
+    mapPickBannerEl = document.createElement('div');
+    mapPickBannerEl.className = 'map-pick-banner';
+    mapPickBannerEl.innerHTML = `<span id="pickBannerText">${esc(tr('pickMapBanner'))}</span> <button type="button" class="ghost" id="cancelPickBtn" style="margin:0;padding:2px 8px;background:#fff;color:#1b2b22">✕</button>`;
+    map.getContainer().appendChild(mapPickBannerEl);
+    $('cancelPickBtn').onclick = cancelMapPick;
+  } else {
+    mapPickBannerEl.style.display = 'flex';
+    $('pickBannerText').textContent = tr('pickMapBanner');
+  }
+  
+  map.once('click', e => {
+    const lat = e.latlng.lat, lng = e.latlng.lng;
+    const targetModal = activePickModalId;
+    cancelMapPick();
+    
+    if (targetModal === 'addModal') {
+      $('addCoords').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      openModal('addModal');
+    } else if (targetModal === 'replantModal') {
+      $('replantCoords').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      openModal('replantModal');
+    }
+  });
+}
+
+function cancelMapPick() {
+  map.getContainer().classList.remove('picking-mode');
+  if (mapPickBannerEl) mapPickBannerEl.style.display = 'none';
+  const prevModal = activePickModalId;
+  activePickModalId = null;
+  map.off('click');
+  if (prevModal) openModal(prevModal);
+}
+
+$('pickAddCoordBtn').onclick = () => startMapPick('addModal');
+$('pickReplantCoordBtn').onclick = () => startMapPick('replantModal');
+
+function buildPopup(t, ix) {
+  const d = document.createElement('div');
+  d.className = 'popup';
+  let banner = '';
+  if (t.status === 'replanted' && t.replantedTo && ix[t.replantedTo]) {
+    banner = `<div class="replant-banner">🔄 <strong>${tr('bReplantedTo')}</strong><br><a href="#" data-go="${esc(t.replantedTo)}">👉 ${tr('bViewNew', { id: esc(t.replantedTo) })}</a> (${esc(distDir(bearing(t, ix[t.replantedTo])))})</div>`;
+  } else if (t.replantedFrom && ix[t.replantedFrom]) {
+    banner = `<div class="replant-banner" style="background:#ecfdf5;border-color:#a7f3d0;color:#065f46">🌿 <strong>${tr('bFrom')}</strong><br><a href="#" data-go="${esc(t.replantedFrom)}" style="color:#047857">👈 ${tr('bViewOrig', { id: esc(t.replantedFrom) })}</a></div>`;
+  }
+  
+  let actions = '';
+  if (t.status !== 'replanted' && t.status !== 'replaced' && t.status !== 'removed') {
+    actions = `
+    <div class="act-btns">
+      <button type="button" class="act-btn" data-act="replace">${tr('aReplace')}</button>
+      <button type="button" class="act-btn" data-act="replant"${t.replantedFrom ? ` title="${esc(tr('aReplantTip'))}"` : ''}>${tr('aReplant')}</button>
+      <button type="button" class="act-btn" data-act="report">${tr('aReport')}</button>
+    </div>`;
+  }
+
+  const wikiUrl = `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(t.sci || t.species)}`;
+  const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${t.lat},${t.lng}`;
+
+  const aiBtnHtml = aiFeatureEnabled ? `<button type="button" class="ai-popup-btn" data-tree-id="${esc(t.id)}" title="Ask AI about this tree" style="background:none;border:0;cursor:pointer;padding:2px;font-size:14px;display:inline-flex;align-items:center" aria-label="Ask AI"><img src="https://cdn-icons-png.flaticon.com/512/71/71403.png" alt="Ask AI" style="width:16px;height:16px;object-fit:contain"></button>` : '';
+
+  d.innerHTML = `
+    ${banner}
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+      <b>${esc(t.id)}</b>
+      ${aiBtnHtml}
+    </div>
+    <span style="font-size:11px;color:var(--muted)">(${esc(tr('status.' + t.status))})</span>
+    <div style="font-size:12px;color:var(--muted)">${esc(t.species)} <i><a href="${wikiUrl}" target="_blank" title="View on Wikipedia">${esc(t.sci || '')}</a></i></div>
+    <table>
+      <tr><td>${tr('pZone')}</td><td>${esc(zoneLabel(t.zone))}</td></tr>
+      <tr><td>${tr('pCond')}</td><td>${esc(condLabel(t.cond))}</td></tr>
+      <tr><td>${tr('pPlanted')}</td><td>${esc(t.year || tr('unknown'))}</td></tr>
+      ${t.notes ? `<tr><td>${tr('pNotes')}</td><td>${esc(t.notes)}</td></tr>` : ''}
+      <tr><td>${tr('pLoc')}</td><td>UTM: ${t.e.toFixed(1)} E, ${t.n.toFixed(1)} N<br>Lat/Lng: <a href="${gmapsUrl}" target="_blank" title="Open in Google Maps">${t.lat.toFixed(6)}, ${t.lng.toFixed(6)}</a></td></tr>
+      ${t.coordCorrected ? `<tr><td>${tr('pCorrected')}</td><td>${esc(fmtDate(t.coordCorrected))}${t.coordNote ? ' (' + esc(t.coordNote) + ')' : ''}</td></tr>` : ''}
+    </table>
+    ${actions}`;
+  d.querySelectorAll('[data-go]').forEach(a => { a.onclick = e => { e.preventDefault(); goTo(a.dataset.go); }; });
+  const aiBtn = d.querySelector('.ai-popup-btn');
+  if (aiBtn) {
+    aiBtn.onclick = () => {
+      openModal('aiModal');
+      $('aiPrompt').value = `Tell me about the care, botanical profile, and health status of tree ID ${t.id} (${t.species} - ${t.sci}), which is currently in ${t.cond} condition in zone ${t.zone}.`;
+      $('sendAiBtn').click();
+    };
+  }
+  const on = (act, fn) => { const b = d.querySelector(`[data-act="${act}"]`); if (b) b.onclick = fn; };
+  on('replace', () => window.openReplaceModal(t.id));
+  on('replant', () => window.openReplantModal(t.id));
+  on('report', () => window.openReportFor(t.id));
+  return d;
+}
+
+function makeMarker(t, ix) {
+  let col = "#fff", fill = COLORS[t.cond] || "#2e8b57", dash;
+  if (t.status === 'replanted') { col = "#7c3aed"; fill = "#ede9fe"; dash = "4 3"; }
+  else if (t.status === 'replaced' || t.status === 'removed') { col = "#6b6b6b"; fill = "#c3cbc5"; dash = "2 3"; }
+  else if (t.replantedFrom) { col = "#059669"; }
+
+  const m = L.circleMarker([t.lat, t.lng], {
+    className: 'tree', radius: 9, color: col, weight: 2.5, dashArray: dash, fillColor: fill, fillOpacity: 1
+  });
+
+  const sym = t.status === 'replanted' ? "🔄 " : t.replantedFrom ? "🌱 " : "";
+  m.bindTooltip(`<span class="tid">${sym}${esc(t.id)}</span>`, {
+    permanent: true, interactive: true, direction: "top", offset: [0, -8],
+    className: t.status === 'replanted' ? "tl replanted" : (t.status === 'replaced' || t.status === 'removed') ? "tl gone" : "tl"
+  });
+
+  let offTimer = null;
+  function applyActive(on) {
+    const el = m.getElement(), tipEl = m.getTooltip() && m.getTooltip().getElement();
+    if (el) el.classList.toggle("active", on);
+    if (tipEl) tipEl.classList.toggle("active", on);
+  }
+  function raise(on) {
+    clearTimeout(offTimer);
+    if (on) {
+      m.bringToFront(); applyActive(true);
+      map.getContainer().classList.add("hovering");
+    } else {
+      offTimer = setTimeout(() => { applyActive(false); map.getContainer().classList.remove("hovering"); }, 80);
+    }
+  }
+  m.on("mouseover", () => raise(true));
+  m.on("mouseout", () => raise(false));
+  m.on("tooltipopen", () => {
+    const tipEl = m.getTooltip() && m.getTooltip().getElement();
+    if (tipEl) {
+      tipEl.onmouseenter = () => raise(true);
+      tipEl.onmouseleave = () => raise(false);
+      tipEl.onclick = e => { e.stopPropagation(); m.openPopup(); };
+    }
+  });
+  m.on("popupopen", () => { openId = t.id; });
+  m.on("popupclose", () => { if (openId === t.id) openId = null; });
+  m.bindPopup(buildPopup(t, ix), { minWidth: 260 });
+  m.addTo(map);
+  return m;
+}
+
+function refreshMarkers() {
+  const reopen = openId;
+  map.getContainer().classList.remove("hovering");
+  markers.forEach(m => map.removeLayer(m));
+  markers.clear();
+  trajectories.forEach(l => map.removeLayer(l));
+  trajectories = [];
+
+  const ix = Object.fromEntries(trees.map(t => [t.id, t]));
+
+  if (trajOn()) {
+    trees.forEach(t => {
+      const dest = t.replantedTo && ix[t.replantedTo];
+      if (t.status !== 'replanted' || !dest || !passFilter(t) || !passFilter(dest)) return;
+      const line = L.polyline(curvePath(t, dest), { color: '#7c3aed', weight: 2.5, dashArray: '5,6' }).addTo(map);
+      line.bindTooltip(`🌱 ${esc(t.id)} ➔ ${esc(dest.id)} (${esc(distDir(bearing(t, dest)))})`);
+      trajectories.push(line);
+    });
+  }
+
+  trees.forEach(t => {
+    if (!passFilter(t)) return;
+    if (t.status === 'replanted' && !opts.replanted) return;
+    if ((t.status === 'replaced' || t.status === 'removed') && !opts.replaced) return;
+    markers.set(t.id, makeMarker(t, ix));
+  });
+
+  renderFilters();
+  renderList();
+  populateReportSelect();
+  renderAreaStats();
+  const rm = reopen && markers.get(reopen);
+  if (rm) rm.openPopup();
+}
+
+function goTo(id) {
+  const t = trees.find(x => x.id === id);
+  if (!t) return;
+  let changed = false;
+  if (!passFilter(t)) { clearFilters(); renderFilters(true); changed = true; }
+  if (t.status === 'replanted' && !opts.replanted) { opts.replanted = true; changed = true; }
+  if ((t.status === 'replaced' || t.status === 'removed') && !opts.replaced) { opts.replaced = true; changed = true; }
+  if (changed) { syncOptButtons(); refreshMarkers(); }
+  map.flyTo([t.lat, t.lng], 20);
+  setTimeout(() => { const m = markers.get(t.id); if (m) m.openPopup(); }, 400);
+}
+
+function renderList() {
+  const listEl = $("list");
+  const q = $("q").value.toLowerCase().trim();
+  listEl.innerHTML = "";
+  trees.filter(t => passFilter(t) && [t.id, t.species, t.zone, zoneLabel(t.zone), t.role || '', roleLabel(t.role)].join(' ').toLowerCase().includes(q)).forEach(t => {
+    const li = document.createElement("li");
+    const dot = t.status === 'replanted' ? '#7c3aed' : (t.status === 'replaced' || t.status === 'removed') ? '#c3cbc5' : COLORS[t.cond];
+    li.innerHTML = `<button type="button"><i class="dot" style="--c:${dot}"></i><span>${esc(t.id)} (${esc(t.species)})</span><span class="cond">${t.status === 'replanted' ? '➔ ' + esc(t.replantedTo) : esc(condLabel(t.cond))}</span></button>`;
+    li.firstChild.onclick = () => goTo(t.id);
+    listEl.appendChild(li);
+  });
+  if (!listEl.children.length) listEl.innerHTML = `<li style="padding:10px 4px;color:var(--muted);font-size:13px">${esc(tr('noMatch'))}</li>`;
+}
+$("q").addEventListener("input", renderList);
+
+function populateSpeciesSelects() {
+  ['replaceSpeciesSelect', 'addSpeciesSelect'].forEach(selId => {
+    const sel = $(selId);
+    if (!sel) return;
+    const grp = sel.querySelector('optgroup');
+    if (!grp) return;
+    grp.innerHTML = '';
+    SPECIES_DB.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = `${s.commonName} (${s.scientificName})`;
+      grp.appendChild(opt);
+    });
+  });
+}
+populateSpeciesSelects();
+
+function openModal(id) { $(id).style.display = 'flex'; }
+function closeModal(id) { $(id).style.display = 'none'; }
+
+$('sendAiBtn').onclick = async () => {
+  const promptText = $('aiPrompt').value.trim();
+  if (!promptText) return;
+  const resBox = $('aiResultBox');
+  resBox.hidden = false;
+  resBox.textContent = tr('aiLoading');
+
+  const systemPrompt = "Act as an expert urban forester and botanical advisor. Provide clear, professional horticultural advice.";
+  const apiKey = "";
+  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+  const payload = {
+    contents: [{ parts: [{ text: promptText }] }],
+    systemInstruction: { parts: [{ text: systemPrompt }] }
+  };
+
+  try {
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+    resBox.textContent = text || "No response received.";
+  } catch (err) {
+    resBox.textContent = "Error connecting to Gemini API.";
+  }
+};
+
+window.openReplaceModal = function(treeId) {
+  $("replaceSourceId").value = treeId;
+  $("replaceSpeciesSelect").value = SPECIES_DB[0] ? SPECIES_DB[0].id : 'CUSTOM';
+  syncReplaceSpecies();
+  $("replaceNotes").value = tr('defReplaceNote');
+  openModal("replaceModal");
+};
+function syncReplaceSpecies() {
+  const s = SPECIES_DB.find(x => x.id === $("replaceSpeciesSelect").value);
+  const cIn = $("replaceCommonName"), scIn = $("replaceSciName");
+  if (s) { cIn.value = s.commonName; cIn.readOnly = true; scIn.value = s.scientificName; scIn.readOnly = true; }
+  else { cIn.value = ''; cIn.readOnly = false; scIn.value = ''; scIn.readOnly = false; }
+  $("replaceNewId").value = uniqueId(slug(cIn.value));
+}
+$("replaceSpeciesSelect").addEventListener("change", syncReplaceSpecies);
+
+$("replaceForm").onsubmit = async e => {
+  e.preventDefault();
+  const srcId = $("replaceSourceId").value;
+  const old = trees.find(t => t.id === srcId);
+  const newId = $("replaceNewId").value.trim();
+  if (!old) return;
+  if (idTaken(newId)) { alert(tr('dupId', { id: newId })); return; }
+
+  const newTree = {
+    id: newId, species: $("replaceCommonName").value, sci: $("replaceSciName").value, zone: old.zone, role: old.role,
+    lat: old.lat, lng: old.lng, e: old.e, n: old.n, cond: $("replaceCondition").value,
+    year: new Date().getFullYear(), notes: $("replaceNotes").value,
+    status: "active", statusDate: today(), replaces: srcId
+  };
+
+  if (adminMode) {
+    old.status = "replaced";
+    old.statusDate = today();
+    await saveTreeDataToSheet(old);
+    trees.push(newTree);
+    await saveTreeDataToSheet(newTree);
+    refreshMarkers();
+    closeModal("replaceModal");
+    goTo(newId);
+  } else {
+    pendingSubmissions.push({
+      type: 'replace', title: tr('subReplaced', { id: newId }),
+      details: `${old.id} ➔ ${newId} (${newTree.species})`,
+      srcId, newTree
+    });
+    renderPendingQueue();
+    closeModal("replaceModal");
+    alert(lang === 'id' ? 'Penggantian pohon diajukan dan menunggu persetujuan admin.' : 'Replacement submitted and waiting for admin approval.');
+  }
+};
+
+let replantMode = 'replant';
+const selTree = () => trees.find(x => x.id === $("replantSourceSelect").value);
+
+function nextReplantId(id) {
+  const base = id.replace(/-replanted\d*$/, '');
+  let cand = base + '-replanted', n = 2;
+  while (idTaken(cand)) cand = base + '-replanted' + (n++);
+  return cand;
+}
+window.openReplantModal = function(treeId) {
+  const sel = $("replantSourceSelect");
+  sel.innerHTML = trees.filter(t => t.status === "active").map(t => `<option value="${esc(t.id)}">${esc(t.id)} (${esc(t.species)})</option>`).join('');
+  if (treeId) sel.value = treeId;
+  replantMode = 'replant';
+  syncReplantSource();
+  openModal("replantModal");
+};
+function syncReplantSource() {
+  const t = selTree();
+  const canCorrect = !!(t && t.replantedFrom);
+  $("replantModeBox").hidden = !canCorrect;
+  if (!canCorrect) replantMode = 'replant';
+  applyReplantMode();
+}
+function applyReplantMode() {
+  const t = selTree();
+  if (!t) return;
+  const correct = replantMode === 'correct';
+  $("modeReplantBtn").setAttribute('aria-pressed', String(!correct));
+  $("modeCorrectBtn").setAttribute('aria-pressed', String(correct));
+  $("replantIdBox").hidden = correct;
+  $("replantNewId").required = !correct;
+  $("replantSourceLabel").textContent = tr(correct ? 'treeToCorrect' : 'treeToReplant');
+  const btn = $("replantSubmit");
+  btn.textContent = tr(correct ? 'saveCorrection' : 'confirmReplant');
+  btn.className = correct ? 'primary' : 'replant-btn';
+  $("replantCoords").value = `${t.lat.toFixed(6)}, ${t.lng.toFixed(6)}`;
+  if (correct) {
+    $("replantNotes").value = tr('defCorrectNote');
+  } else {
+    $("replantNewId").value = nextReplantId(t.id);
+    $("replantNotes").value = tr('defReplantNote', { id: t.id });
+  }
+}
+$("replantSourceSelect").addEventListener("change", syncReplantSource);
+$("modeReplantBtn").onclick = () => { replantMode = 'replant'; applyReplantMode(); };
+$("modeCorrectBtn").onclick = () => { replantMode = 'correct'; applyReplantMode(); };
+$("openReplantBtn").onclick = () => window.openReplantModal();
+
+$("replantForm").onsubmit = async e => {
+  e.preventDefault();
+  const old = selTree();
+  if (!old) return;
+  const coordObj = parseCoords($("replantCoords").value);
+  if (!coordObj) { alert("Invalid coordinate format. Please use: -6.332397, 106.628740"); return; }
+  const newLat = coordObj.lat, newLng = coordObj.lng;
+  const utm = latLngToUtm(newLat, newLng);
+  if (Math.hypot(newLat - old.lat, newLng - old.lng) < 0.00001) { alert(tr('samePos')); return; }
+
+  if (replantMode === 'correct') {
+    if (adminMode) {
+      old.lat = newLat; old.lng = newLng; old.e = utm.e; old.n = utm.n;
+      old.coordCorrected = today();
+      old.coordNote = $("replantNotes").value.trim();
+      await saveTreeDataToSheet(old);
+      refreshMarkers();
+      closeModal("replantModal");
+      goTo(old.id);
+    } else {
+      alert(lang === 'id' ? 'Koreksi koordinat memerlukan persetujuan admin.' : 'Coordinate corrections require admin approval.');
+      closeModal("replantModal");
+    }
+    return;
+  }
+
+  const newId = $("replantNewId").value.trim();
+  if (idTaken(newId)) { alert(tr('dupId', { id: newId })); return; }
+
+  const newTree = {
+    id: newId, species: old.species, sci: old.sci, zone: old.zone, role: old.role,
+    lat: newLat, lng: newLng, e: utm.e, n: utm.n, cond: old.cond,
+    year: old.year, notes: $("replantNotes").value,
+    status: "active", statusDate: today(), replaces: old.id, replantedFrom: old.id
+  };
+
+  if (adminMode) {
+    old.status = "replanted";
+    old.statusDate = today();
+    old.replantedTo = newId;
+    await saveTreeDataToSheet(old);
+    trees.push(newTree);
+    await saveTreeDataToSheet(newTree);
+    refreshMarkers();
+    closeModal("replantModal");
+    goTo(newId);
+  } else {
+    pendingSubmissions.push({
+      type: 'replant', title: tr('subReplanted', { id: newId }),
+      details: `${old.id} ➔ ${newId}`,
+      srcId: old.id, newTree
+    });
+    renderPendingQueue();
+    closeModal("replantModal");
+    alert(lang === 'id' ? 'Pindah-tanam diajukan dan menunggu persetujuan admin.' : 'Re-planting submitted and waiting for admin approval.');
+  }
+};
+
+$("openAddBtn").onclick = () => { syncAddSpecies(); openModal("addModal"); };
+function syncAddSpecies() {
+  const s = SPECIES_DB.find(x => x.id === $("addSpeciesSelect").value);
+  const cIn = $("addCommonName"), scIn = $("addSciName");
+  if (s) { cIn.value = s.commonName; cIn.readOnly = true; scIn.value = s.scientificName; scIn.readOnly = true; }
+  else { cIn.value = ''; cIn.readOnly = false; scIn.value = ''; scIn.readOnly = false; }
+  $("addTreeId").value = uniqueId(slug(cIn.value));
+}
+$("addSpeciesSelect").addEventListener("change", syncAddSpecies);
+
+$("addForm").onsubmit = async e => {
+  e.preventDefault();
+  const id = $("addTreeId").value.trim();
+  if (idTaken(id)) { alert(tr('dupId', { id })); return; }
+  const coordObj = parseCoords($("addCoords").value);
+  if (!coordObj) { alert("Invalid coordinate format. Please use: -6.332397, 106.628740"); return; }
+  const lat = coordObj.lat, lng = coordObj.lng;
+  const utm = latLngToUtm(lat, lng);
+  const newTree = {
+    id, species: $("addCommonName").value, sci: $("addSciName").value,
+    zone: $("addZone").value, role: $("addRole").value,
+    lat, lng, e: utm.e, n: utm.n, cond: $("addCondition").value,
+    year: new Date().getFullYear(), status: "active", statusDate: today()
+  };
+
+  if (adminMode) {
+    trees.push(newTree);
+    await saveTreeDataToSheet(newTree);
+    refreshMarkers();
+    closeModal("addModal");
+    goTo(id);
+  } else {
+    pendingSubmissions.push({
+      type: 'add', title: tr('subAdded', { id }),
+      details: `${id} (${newTree.species}) in ${newTree.zone}`,
+      tree: newTree
+    });
+    renderPendingQueue();
+    closeModal("addModal");
+    alert(lang === 'id' ? 'Penambahan pohon diajukan dan menunggu persetujuan admin.' : 'Tree addition submitted and waiting for admin approval.');
+  }
+};
+
+window.openReportFor = function(id) {
+  $("repTree").value = id;
+  $("reportForm").scrollIntoView({ behavior: 'smooth' });
+};
+function populateReportSelect() {
+  const sel = $("repTree"), cur = sel.value;
+  if (!sel) return;
+  sel.innerHTML = trees.filter(t => t.status === 'active').map(t => `<option value="${esc(t.id)}">${esc(t.id)} (${esc(t.species)})</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+$("reportForm").onsubmit = async e => {
+  e.preventDefault();
+  const id = $("repTree").value, cond = $("repCond").value, notes = $("repNote").value.trim();
+  const t = trees.find(x => x.id === id);
+  if (!t) return;
+
+  const btn = $("sendReportBtn");
+  btn.style.background = "#9aa59d";
+  btn.style.cursor = "not-allowed";
+  btn.disabled = true;
+
+  if (adminMode) {
+    t.cond = cond;
+    t.condDate = today();
+    if (notes) t.notes = notes;
+    await saveTreeDataToSheet(t);
+    $("repMsg").textContent = tr('repSaved');
+    refreshMarkers();
+  } else {
+    pendingSubmissions.push({
+      type: 'report', title: tr('subReport', { id }),
+      details: `${id} ➔ ${cond} (${notes || 'No notes'})`,
+      treeId: id, cond, notes
+    });
+    renderPendingQueue();
+    $("repMsg").textContent = tr('repSaved');
+  }
+};
+
+function setAdmin(on) {
+  adminMode = on;
+  $("adminBar").hidden = !on;
+  $("adminLinkBtn").hidden = on;
+  $("logoutBtnTop").hidden = !on;
+  renderPendingQueue();
+  
+  const titleEl = $("appTitleDisplay");
+  const iconEl = $("appIconDisplay");
+  if (on) {
+    titleEl.classList.add("editable");
+    iconEl.classList.add("editable");
+    titleEl.onclick = () => {
+      const cur = titleEl.textContent;
+      const res = prompt(tr('renamePrompt'), cur);
+      if (res !== null && res.trim() !== '') {
+        const val = res.trim();
+        titleEl.textContent = val;
+        titleEl.title = val;
+        document.title = val;
+      }
+    };
+    iconEl.onclick = () => {
+      const cur = iconEl.src;
+      const res = prompt(tr('iconPrompt'), cur);
+      if (res !== null && res.trim() !== '') {
+        const newUrl = res.trim();
+        iconEl.src = newUrl;
+        let favicon = document.querySelector("link[rel='icon']") || document.querySelector("link[rel='shortcut icon']");
+        if (favicon) {
+          favicon.href = newUrl;
+        } else {
+          const link = document.createElement('link');
+          link.rel = 'icon';
+          link.href = newUrl;
+          document.head.appendChild(link);
+        }
+      }
+    };
+  } else {
+    titleEl.classList.remove("editable");
+    iconEl.classList.remove("editable");
+    titleEl.onclick = null;
+    iconEl.onclick = null;
+  }
+}
+
+$("adminLinkBtn").onclick = () => {
+  if (adminMode) {
+    alert(lang === 'id' ? 'Anda sudah berada di Mode Admin.' : 'You are already in Admin Mode.');
+    return;
+  }
+  $("adminMsg").textContent = '';
+  $("adminPinInput").value = '';
+  openModal("adminModal");
+};
+
+$("googleAuthBtn").onclick = async () => {
+  const msgEl = $("adminMsg");
+  msgEl.textContent = lang === 'id' ? 'Menghubungkan dengan Akun Google...' : 'Authenticating with Google Account...';
+  
+  try {
+    const res = await fetch(GOOGLE_SHEET_API + '?action=checkAuth');
+    const data = await res.json();
+    if (data && data.result === "success") {
+      if (data.authorized) {
+        setAdmin(true);
+        closeModal("adminModal");
+      } else {
+        msgEl.textContent = tr('wrongAdmin', { email: data.email || 'unknown' });
+      }
+    } else {
+      throw new Error("Invalid auth response");
+    }
+  } catch (err) {
+    console.warn("Live Google Auth check failed or offline. Use Sheet PIN backup if needed.", err);
+    msgEl.textContent = lang === 'id' ? 'Koneksi Google Auth gagal. Silakan gunakan Sheet Admin PIN di bawah.' : 'Google Auth offline/failed. Please use Sheet Admin PIN below.';
+  }
+};
+
+$("pinAuthBtn").onclick = async () => {
+  const pin = $("adminPinInput").value.trim();
+  if (!pin) return;
+  const msgEl = $("adminMsg");
+  msgEl.textContent = lang === 'id' ? 'Memeriksa PIN di Google Sheet...' : 'Checking PIN against Google Sheet...';
+  
+  try {
+    const res = await fetch(GOOGLE_SHEET_API + '?action=checkPin&pin=' + encodeURIComponent(pin));
+    const data = await res.json();
+    if (data && data.result === "success" && data.authorized) {
+      setAdmin(true);
+      closeModal("adminModal");
+    } else {
+      msgEl.textContent = lang === 'id' ? 'PIN Admin Salah atau tidak terdaftar di Sheet.' : 'Incorrect Admin PIN or not listed on Sheet.';
+    }
+  } catch (err) {
+    msgEl.textContent = lang === 'id' ? 'Gagal memverifikasi PIN dengan Sheet.' : 'Failed to verify PIN with Google Sheet.';
+  }
+};
+
+$("logoutBtnTop").onclick = () => setAdmin(false);
+
+const EXPORT_COLS = ['tree_id', 'species_common', 'species_scientific', 'zone', 'role', 'latitude', 'longitude', 'condition', 'condition_date', 'planting_year', 'notes', 'status', 'status_date', 'replaces', 'replanted_to', 'replanted_from', 'replant_distance', 'replant_direction', 'coord_corrected_date', 'coord_correction_note'];
+const csvCell = v => { const s = v == null ? '' : String(v); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+function buildCSV() {
+  const ix = Object.fromEntries(trees.map(t => [t.id, t]));
+  const rows = trees.map(t => {
+    const origin = t.status === 'replanted' ? t : (t.replantedFrom && ix[t.replantedFrom]);
+    const dest = t.status === 'replanted' ? ix[t.replantedTo] : t;
+    const b = (origin && dest) ? bearing(origin, dest) : null;
+    return [t.id, t.species, t.sci, t.zone, t.role, t.lat.toFixed(6), t.lng.toFixed(6), t.cond, t.condDate, t.year, t.notes,
+      t.status, t.statusDate, t.replaces, t.replantedTo, t.replantedFrom, b ? Math.round(b.m) : '', b ? dirCsv(b.dir) : '',
+      t.coordCorrected, t.coordNote].map(csvCell).join(',');
+  });
+  return [EXPORT_COLS.join(',')].concat(rows).join('\n');
+}
+$("exportBtn").onclick = () => {
+  if (!adminMode) return;
+  const blob = new Blob([buildCSV()], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cgst-eco-inventory-' + today() + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
+applyLang();
+setAdmin(false);
+syncOptButtons();
+loadTreeData();
+</script>
+</body>
+</html>
